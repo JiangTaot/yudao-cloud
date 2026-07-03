@@ -50,6 +50,9 @@ rebel.xml
 
 application-my.yaml
 
+# Environment (contains secrets)
+.env
+
 /yudao-ui-app/unpackage/
 .DS_Store
 **/.DS_Store
