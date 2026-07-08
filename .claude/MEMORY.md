@@ -1,0 +1,1 @@
+- [思考过程使用中文描述](chinese-thinking-process.md) — 用户反馈：思考过程用中文，特殊英文术语除外
