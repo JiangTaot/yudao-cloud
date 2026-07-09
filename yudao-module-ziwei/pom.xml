@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>cn.iocoder.cloud</groupId>
+        <artifactId>yudao</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <modules>
+        <module>yudao-module-ziwei-api</module>
+        <module>yudao-module-ziwei-server</module>
+    </modules>
+    <packaging>pom</packaging>
+    <artifactId>yudao-module-ziwei</artifactId>
+
+    <name>${project.artifactId}</name>
+    <description>
+        紫微斗数模块，提供命盘排盘、命格分析、流年大限等功能。
+        基于倪海厦天纪和紫微斗数古籍，结合 AI 大模型进行命理解读。
+    </description>
+
+</project>
