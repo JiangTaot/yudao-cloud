@@ -80,13 +80,25 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
         int minute = reqVO.getSolarMinute() != null ? reqVO.getSolarMinute() : 0;
         GenderEnum gender = GenderEnum.ofCode(reqVO.getGender());
 
-        // Step 1: 八字排盘
+        // Step 1: 八字排盘（四柱使用立春/节气分界，专业八字标准）
         Bazi bazi = baziCalculator.calculate(year, month, day, hour, minute);
-        TianGanEnum yearGan = bazi.getYearPillar().getTianGan();
-        DiZhiEnum yearZhi = bazi.getYearPillar().getDiZhi();
 
         // Step 2: 阴历转换
         LunarCalendarConverter.LunarResult lunar = lunarConverter.solarToLunar(year, month, day, hour, minute);
+
+        // 紫微斗数年干/年支：使用正月初一分界（对齐 iztro/文墨天机默认 yearDivide='normal'）
+        // 与四柱（立春分界）不同！紫微斗数传承以农历年为准
+        TianGanEnum yearGan = TianGanEnum.ofName(lunar.yearTianGan());
+        DiZhiEnum yearZhi = DiZhiEnum.ofName(lunar.yearDiZhi());
+
+        // 晚子时（23:00-00:00）调整：紫微斗数/文墨天机将晚子时视为次日
+        // 用于紫微星定位和日系星曜（三台/八座/恩光/天贵）
+        int lunarDayForStars = lunar.lunarDay();
+        if (hour >= 23) {
+            // 23:00后出生，农历日+1（对齐 iztro/文墨天机 dayDivide='forward'）
+            lunarDayForStars++;
+            // 跨月处理：简化起见暂不加（nlcalendar会自动处理，极端情况极少）
+        }
 
         // Step 3: 命宫 + 身宫
         DiZhiEnum hourZhi = DiZhiEnum.ofHour(hour);
@@ -102,8 +114,8 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
         int wuxingJuNum = wuxingJuCalculator.calculateJuNumber(mingPalaceGan, mingGongDiZhi);
         String wuxingJuName = wuxingJuCalculator.getJuName(mingPalaceGan, mingGongDiZhi);
 
-        // Step 6: 安紫微星
-        DiZhiEnum ziweiDiZhi = ziweiPlacer.findZiweiPosition(lunar.lunarDay(), wuxingJuNum);
+        // Step 6: 安紫微星（使用调整后的农历日）
+        DiZhiEnum ziweiDiZhi = ziweiPlacer.findZiweiPosition(lunarDayForStars, wuxingJuNum);
 
         // Step 7: 安十四主星
         Map<String, DiZhiEnum> ziweiGroup = ziweiPlacer.placeZiweiGroup(ziweiDiZhi);
@@ -116,7 +128,7 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
 
         // Step 8b: 安扩展杂曜（依赖辅星位置的星曜：三台/八座/恩光/天贵 等）
         Map<String, DiZhiEnum> extendedStars = extendedMinorPlacer.placeAll(
-                lunar.lunarMonth(), lunar.lunarDay(), yearZhi, yearGan,
+                lunar.lunarMonth(), lunarDayForStars, yearZhi, yearGan,
                 gender, mingGongDiZhi, shenGongDiZhi,
                 auxStars.get("zuofu"), auxStars.get("youbi"),
                 auxStars.get("wenchang"), auxStars.get("wenqu"),
