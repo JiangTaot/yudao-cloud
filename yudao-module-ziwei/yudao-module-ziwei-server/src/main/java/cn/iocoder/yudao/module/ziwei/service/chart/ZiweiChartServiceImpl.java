@@ -129,7 +129,7 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
         // Step 8b: 安扩展杂曜（依赖辅星位置的星曜：三台/八座/恩光/天贵 等）
         Map<String, DiZhiEnum> extendedStars = extendedMinorPlacer.placeAll(
                 lunar.lunarMonth(), lunarDayForStars, yearZhi, yearGan,
-                gender, mingGongDiZhi, shenGongDiZhi,
+                hourZhi, gender, mingGongDiZhi, shenGongDiZhi,
                 auxStars.get("zuofu"), auxStars.get("youbi"),
                 auxStars.get("wenchang"), auxStars.get("wenqu"),
                 auxStars.get("lucun"));

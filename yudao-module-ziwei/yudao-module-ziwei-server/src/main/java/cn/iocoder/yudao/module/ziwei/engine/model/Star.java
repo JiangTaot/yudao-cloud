@@ -101,12 +101,40 @@ public class Star {
     public static final String CODE_FENGGE = "fengge";         // 凤阁
     public static final String CODE_LONGCHI = "longchi";       // 龙池
 
+    // ========== 神煞/流年杂曜 ==========
+    public static final String CODE_FENGGAO = "fenggao";       // 封诰
+    public static final String CODE_TAIFU_M = "taifu_m";       // 台辅
+    public static final String CODE_FEILIAN = "feilian";       // 蜚廉
+    public static final String CODE_YINSHA = "yinsha";         // 阴煞
+    public static final String CODE_TIANWU = "tianwu";         // 天巫
+    public static final String CODE_TIANYUEX = "tianyuex";     // 天月(区别于天钺tianyue)
+    public static final String CODE_YUEDE = "yuede";           // 月德
+    public static final String CODE_TIANCHU = "tianchu";       // 天厨
+    public static final String CODE_NIANJIE = "nianjie";       // 年解
+    public static final String CODE_JIESHA = "jiesha";         // 劫煞
+    public static final String CODE_LONGDE = "longde";         // 龙德
+    public static final String CODE_JIEKONG = "jiekong";       // 截空
+    public static final String CODE_XUNKONG = "xunkong";       // 旬空
+    public static final String CODE_DAHAO = "dahao";           // 大耗
+    public static final String CODE_TIANSHI = "tianshi";       // 天使
+    public static final String CODE_TIANSHANG = "tianshang";   // 天伤
+    public static final String CODE_FUXUN = "fuxun";           // 副旬
+    public static final String CODE_FUJIE = "fujie";           // 副截
+
     /** 所有扩展杂曜（不含神煞） */
     public static final String[] EXTENDED_MINOR_STARS = {
         CODE_TIANFUX, CODE_TIANGUAN, CODE_BAZUO, CODE_SANTAI, CODE_TIANCAI,
         CODE_TIANKONG_M, CODE_TIANKU, CODE_TIANXU, CODE_TIANGUI, CODE_TIANSHOU,
         CODE_TIANDE_M, CODE_GUCHEN, CODE_XIANCHI, CODE_ENGUANG, CODE_POSUI,
         CODE_HUAGAI, CODE_JIESHEN, CODE_GUASU, CODE_FENGGE, CODE_LONGCHI
+    };
+
+    /** 神煞/流年杂曜 */
+    public static final String[] SHENSHA_STARS = {
+        CODE_FENGGAO, CODE_TAIFU_M, CODE_FEILIAN, CODE_YINSHA, CODE_TIANWU,
+        CODE_TIANYUEX, CODE_YUEDE, CODE_TIANCHU, CODE_NIANJIE, CODE_JIESHA,
+        CODE_LONGDE, CODE_JIEKONG, CODE_XUNKONG, CODE_DAHAO, CODE_TIANSHI,
+        CODE_TIANSHANG, CODE_FUXUN, CODE_FUJIE
     };
 
     /**
@@ -166,6 +194,24 @@ public class Star {
             case CODE_GUASU -> "寡宿";
             case CODE_FENGGE -> "凤阁";
             case CODE_LONGCHI -> "龙池";
+            case CODE_FENGGAO -> "封诰";
+            case CODE_TAIFU_M -> "台辅";
+            case CODE_FEILIAN -> "蜚廉";
+            case CODE_YINSHA -> "阴煞";
+            case CODE_TIANWU -> "天巫";
+            case CODE_TIANYUEX -> "天月";
+            case CODE_YUEDE -> "月德";
+            case CODE_TIANCHU -> "天厨";
+            case CODE_NIANJIE -> "年解";
+            case CODE_JIESHA -> "劫煞";
+            case CODE_LONGDE -> "龙德";
+            case CODE_JIEKONG -> "截空";
+            case CODE_XUNKONG -> "旬空";
+            case CODE_DAHAO -> "大耗";
+            case CODE_TIANSHI -> "天使";
+            case CODE_TIANSHANG -> "天伤";
+            case CODE_FUXUN -> "副旬";
+            case CODE_FUJIE -> "副截";
             default -> code;
         };
     }

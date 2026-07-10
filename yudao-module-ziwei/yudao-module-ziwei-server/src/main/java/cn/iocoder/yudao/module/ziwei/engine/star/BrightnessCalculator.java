@@ -203,6 +203,23 @@ public class BrightnessCalculator {
 
         // 龙池
         TABLE.put(Star.CODE_LONGCHI,    arr(2,5,5,1,1,7,6,1,5,1,7,2));
+
+        // ══════════════════ 神煞/流年杂曜 ══════════════════
+
+        // 旬空
+        TABLE.put(Star.CODE_XUNKONG,    arr(7,0,0,5,0,0,7,0,0,5,0,0));
+
+        // 大耗
+        TABLE.put(Star.CODE_DAHAO,      arr(2,5,7,6,5,7,2,5,7,6,5,7));
+
+        // 天使
+        TABLE.put(Star.CODE_TIANSHI,    arr(7,7,5,5,7,5,5,5,5,7,7,2));
+
+        // 天伤
+        TABLE.put(Star.CODE_TIANSHANG,  arr(7,5,5,7,5,5,7,7,5,5,5,2));
+
+        // 以下星曜无 QS 亮度数据（全0），仅占位
+        // 封诰/台辅/蜚廉/阴煞/天巫/天月/月德/天厨/年解/劫煞/龙德/截空/副旬/副截
     }
 
     /** 便捷写法：创建 int 数组 */
