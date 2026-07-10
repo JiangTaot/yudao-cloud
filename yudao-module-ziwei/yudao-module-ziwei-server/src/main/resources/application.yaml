@@ -103,11 +103,16 @@ yudao:
   tenant: # 多租户相关配置项
     enable: true
     ignore-urls:
+      - /admin-api/ziwei/ai/**
+      - /app-api/ziwei/ai/**
+      - /admin-api/ziwei/rag/**
+      - /app-api/ziwei/rag/**
     ignore-tables:
       - ziwei_chart
       - ziwei_palace
       - ziwei_star_position
       - ziwei_sihua
       - ziwei_daxian
+      - ziwei_rag_document
 
 debug: false

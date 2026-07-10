@@ -122,15 +122,33 @@ yudao:
   access-log:
     enable: false
 
---- #################### AI 配置（DeepSeek） ####################
+--- #################### AI 配置（DeepSeek Chat + SiliconFlow Embedding） ####################
+
+ziwei:
+  ai:
+    deepseek:
+      api-key: sk-75ab02a23bd146248ecca2abd5d90230
+      base-url: https://api.deepseek.com
+      model: deepseek-v4-pro
+      temperature: 0.7
+      max-tokens: 4096
+    embedding:
+      api-key: sk-ws-H.EMYDHMI.eNOJ.MEYCIQC2OsGoK_OQtRjmUtk6vzp7p9HKWvSD-UytmxpKtMZL_QIhANLysu_4sbVPa_KJIlxd-m4FqMJTMvy_6P5E2zZc2fOb
+      model: text-embedding-v4
 
 spring:
   ai:
     openai:
-      api-key: sk-75ab02a23bd146248ecca2abd5d90230
-      base-url: https://api.deepseek.com
-      chat:
-        model: deepseek-v4-pro[1m]
-        options:
-          temperature: 0.7
-          max-tokens: 4096
+      api-key: unused  # 占位，满足 OpenAiAutoConfiguration 条件
+    dashscope:
+      api-key: unused  # 占位，满足 DashScopeAutoConfiguration 条件
+    vectorstore:
+      milvus:
+        initialize-schema: true
+        database-name: default
+        collection-name: ziwei_knowledge
+        client:
+          host: 127.0.0.1
+          port: 19530
+          username: root
+          password: Milvus
