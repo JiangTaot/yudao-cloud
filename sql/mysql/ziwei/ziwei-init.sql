@@ -55,6 +55,7 @@ CREATE TABLE ziwei_palace (
     da_xian_start_age TINYINT COMMENT '大限起始岁数',
     da_xian_end_age TINYINT COMMENT '大限结束岁数',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     creator VARCHAR(64), updater VARCHAR(64), deleted BIT DEFAULT 0,
     INDEX idx_chart_id (chart_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='紫微斗数-宫位';
@@ -108,3 +109,9 @@ CREATE TABLE ziwei_daxian (
     creator VARCHAR(64), updater VARCHAR(64), deleted BIT DEFAULT 0,
     INDEX idx_chart_id (chart_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='紫微斗数-大限';
+
+-- ==================== 修复：为已有表添加缺失的 update_time 列 ====================
+ALTER TABLE ziwei_palace ADD COLUMN update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER create_time;
+ALTER TABLE ziwei_star_position ADD COLUMN update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER create_time;
+ALTER TABLE ziwei_sihua ADD COLUMN update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER create_time;
+ALTER TABLE ziwei_daxian ADD COLUMN update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER create_time;

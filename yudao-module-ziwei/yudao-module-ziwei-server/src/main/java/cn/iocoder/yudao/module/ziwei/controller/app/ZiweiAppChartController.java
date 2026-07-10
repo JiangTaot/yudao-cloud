@@ -14,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 
 /**
  * 用户端 - 紫微斗数命盘 Controller
@@ -22,7 +23,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  */
 @Tag(name = "用户端 - 紫微斗数命盘")
 @RestController
-@RequestMapping("/app-api/ziwei/chart")
+@RequestMapping("/ziwei/chart")
 @Validated
 public class ZiweiAppChartController {
 
@@ -44,7 +45,7 @@ public class ZiweiAppChartController {
     @GetMapping("/my-list")
     @Operation(summary = "我的命盘列表")
     public CommonResult<PageResult<ZiweiChartRespVO>> myList(@Valid ZiweiChartPageReqVO reqVO) {
-        // TODO: 从当前登录用户获取 userId
+        reqVO.setUserId(getLoginUserId());
         return success(chartService.getChartPage(reqVO));
     }
 

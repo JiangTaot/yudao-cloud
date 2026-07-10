@@ -91,9 +91,13 @@ public class ChartContext {
     private List<DaxianCycle> daxianCycles = new ArrayList<>();
 
     // ========== 格局 ==========
-    /** 匹配到的格局列表 */
+    /** 匹配到的格局列表（名称） */
     @Builder.Default
     private List<String> patternNames = new ArrayList<>();
+
+    /** 匹配到的格局详情列表 */
+    @Builder.Default
+    private List<cn.iocoder.yudao.module.ziwei.engine.pattern.PatternResult> patternResults = new ArrayList<>();
 
     // ========== 便利方法 ==========
 

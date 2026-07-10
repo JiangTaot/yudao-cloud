@@ -55,6 +55,9 @@ public class ZiweiChartRespVO {
     // ========== 格局 ==========
     private List<String> patterns;
 
+    /** 格局详情列表 */
+    private List<PatternDetailVO> patternDetails;
+
     private LocalDateTime createTime;
 
     // --- 内嵌类 ---
@@ -106,6 +109,27 @@ public class ZiweiChartRespVO {
         private Integer ageEnd;
         private String palaceName;
         private String direction;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PatternDetailVO {
+        /** 格局名称 */
+        private String name;
+        /** 格局等级（上格/中格/平格/恶格） */
+        private String level;
+        /** 格局描述 */
+        private String description;
+        /** 古籍出处 */
+        private String source;
+        /** 必须满足的条件 */
+        private List<String> required;
+        /** 加分条件 */
+        private List<String> bonus;
+        /** 破格条件 */
+        private List<String> breaking;
     }
 
 }

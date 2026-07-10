@@ -22,7 +22,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  */
 @Tag(name = "管理后台 - 紫微斗数命盘")
 @RestController
-@RequestMapping("/admin-api/ziwei/chart")
+@RequestMapping("/ziwei/chart")
 @Validated
 public class ZiweiChartController {
 

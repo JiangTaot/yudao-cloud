@@ -1,1 +1,3 @@
 - [思考过程使用中文描述](chinese-thinking-process.md) — 用户反馈：思考过程用中文，特殊英文术语除外
+- [WMS 模块概览](memory/wms-module-overview.md) — 项目架构、功能模块、技术栈与当前完成度
+- [项目 .claude 路径](memory/project-claude-path.md) — Git Bash 路径 `/d/...` 映射规则，禁止使用 `/mnt/d/`

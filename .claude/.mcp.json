@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "dbx": {
+      "command": "D:\\env\\NVM\\nodejs\\node_global\\dbx-mcp-server.cmd"
+    }
+  }
+}
