@@ -24,10 +24,23 @@ public class TianfuStarPlacer {
     private static final String[] TIANFU_NAMES = {"天府", "太阴", "贪狼", "巨门", "天相", "天梁", "七杀", "破军"};
 
     /**
-     * 定位天府星所在地支（紫微星的镜像对宫）
+     * 定位天府星所在地支（紫微星的轴对称位置）
+     * <p>
+     * iztro 公式：tianfuIndex = fixIndex(12 - ziweiIztroIndex)
+     * 转为绝对地支索引：tianfuAbs = (16 - ziweiAbs) % 12
+     * <p>
+     * 注意：天府星不是紫微星的对宫（180°），而是关于寅轴的镜像对称。
+     *
+     * @param ziweiDiZhi 紫微星所在地支
+     * @return 天府星所在地支
      */
     public DiZhiEnum findTianfuPosition(DiZhiEnum ziweiDiZhi) {
-        return ziweiDiZhi.opposite();
+        // iztro 公式：tianfu = fixIndex(12 - (ziweiAbs - 2))
+        //         = (16 - ziweiAbs) % 12
+        int ziweiAbs = ziweiDiZhi.getIndex();
+        int tianfuAbs = (16 - ziweiAbs) % 12;
+        if (tianfuAbs < 0) tianfuAbs += 12;
+        return DiZhiEnum.ofIndex(tianfuAbs);
     }
 
     /**

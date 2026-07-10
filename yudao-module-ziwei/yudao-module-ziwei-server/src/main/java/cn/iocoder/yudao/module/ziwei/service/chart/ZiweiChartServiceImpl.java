@@ -53,6 +53,7 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
     private final SihuaCalculator sihuaCalculator = new SihuaCalculator();
     private final DaxianEngine daxianEngine = new DaxianEngine();
     private final PatternMatcher patternMatcher = new PatternMatcher();
+    private final BrightnessCalculator brightnessCalculator = new BrightnessCalculator();
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -105,7 +106,8 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
 
         // Step 7: 安十四主星
         Map<String, DiZhiEnum> ziweiGroup = ziweiPlacer.placeZiweiGroup(ziweiDiZhi);
-        Map<String, DiZhiEnum> tianfuGroup = tianfuPlacer.placeTianfuGroup(ziweiDiZhi.opposite());
+        DiZhiEnum tianfuDiZhi = tianfuPlacer.findTianfuPosition(ziweiDiZhi);
+        Map<String, DiZhiEnum> tianfuGroup = tianfuPlacer.placeTianfuGroup(tianfuDiZhi);
 
         // Step 8: 安辅星 + 杂曜
         Map<String, DiZhiEnum> auxStars = auxiliaryPlacer.placeAll(lunar.lunarMonth(), hourZhi, yearGan, yearZhi);
@@ -134,8 +136,9 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
                 .palaces(palaces).natalSihua(natalSihua).daxianCycles(daxianCycles)
                 .build();
 
-        List<String> patterns = patternMatcher.matchPatterns(ctx);
-        ctx.setPatternNames(patterns);
+        List<cn.iocoder.yudao.module.ziwei.engine.pattern.PatternResult> patternResults = patternMatcher.matchPatternsDetailed(ctx);
+        ctx.setPatternResults(patternResults);
+        ctx.setPatternNames(patternMatcher.matchPatterns(ctx));
 
         return ctx;
     }
@@ -163,6 +166,7 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
             String starCode = entry.getKey();
             DiZhiEnum diZhi = entry.getValue();
             String starName = Star.getNameByCode(starCode);
+            StarBrightnessEnum brightness = brightnessCalculator.calculate(starCode, diZhi);
 
             for (Palace palace : palaces.values()) {
                 if (palace.getDiZhi() == diZhi) {
@@ -170,6 +174,7 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
                             .starCode(starCode)
                             .starName(starName)
                             .starType(type)
+                            .brightness(brightness)
                             .build();
                     palace.addStar(sp);
                     break;
@@ -196,6 +201,16 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
     // ========== 持久化 ==========
 
     private ZiweiChartDO saveChart(ChartContext ctx, Long userId) {
+        // 序列化完整命盘 JSON 备份
+        String chartJson = null;
+        try {
+            chartJson = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(ctx);
+        } catch (Exception e) {
+            log.warn("序列化 chart_json 失败: {}", e.getMessage());
+        }
+
         ZiweiChartDO chartDO = ZiweiChartDO.builder()
                 .userId(userId)
                 .solarYear(ctx.getSolarYear()).solarMonth(ctx.getSolarMonth())
@@ -211,6 +226,7 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
                 .mingGongDizhi(ctx.getMingGongDiZhi().getName())
                 .shenGongDizhi(ctx.getShenGongDiZhi().getName())
                 .wuxingJu(ctx.getWuxingJu())
+                .chartJson(chartJson)
                 .build();
         chartMapper.insert(chartDO);
         Long chartId = chartDO.getId();
@@ -271,17 +287,159 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
     public ZiweiChartRespVO getChart(Long id) {
         ZiweiChartDO chartDO = chartMapper.selectById(id);
         if (chartDO == null) return null;
-        // 从数据库重建 VO（简化版，不含完整星曜数据）
-        return toRespVO(chartDO, null);
+        // 从数据库重建完整命盘数据
+        return toRespVO(chartDO, buildChartContextFromDB(id));
     }
 
     @Override
     public PageResult<ZiweiChartRespVO> getChartPage(ZiweiChartPageReqVO reqVO) {
         PageResult<ZiweiChartDO> page = chartMapper.selectPage(reqVO);
         List<ZiweiChartRespVO> list = page.getList().stream()
-                .map(chart -> toRespVO(chart, null))
+                .map(chart -> toRespVO(chart, null))  // 列表查询不含完整星曜数据，性能优先
                 .collect(Collectors.toList());
         return new PageResult<>(list, page.getTotal());
+    }
+
+    /**
+     * 从数据库重建 ChartContext（用于查询已有命盘）
+     * <p>
+     * 查询所有关联表（宫位、星曜、四化、大限）并重建成内存对象，
+     * 避免每次查询都重新排盘计算。
+     */
+    private ChartContext buildChartContextFromDB(Long chartId) {
+        // 1. 查询所有宫位
+        List<ZiweiPalaceDO> palaceDOs = palaceMapper.selectListByChartId(chartId);
+        // 2. 查询所有星曜
+        List<ZiweiStarPositionDO> starPositionDOs = starPositionMapper.selectListByChartId(chartId);
+        // 3. 查询四化
+        List<ZiweiSihuaDO> sihuaDOs = sihuaMapper.selectListByChartId(chartId);
+        // 4. 查询大限
+        List<ZiweiDaxianDO> daxianDOs = daxianMapper.selectListByChartId(chartId);
+
+        // --- 按 palaceId 分组星曜 ---
+        Map<Long, List<ZiweiStarPositionDO>> starsByPalaceId = starPositionDOs.stream()
+                .collect(Collectors.groupingBy(ZiweiStarPositionDO::getPalaceId));
+
+        // --- 构建宫位 ---
+        EnumMap<PalaceTypeEnum, Palace> palaces = new EnumMap<>(PalaceTypeEnum.class);
+        DiZhiEnum mingGongDiZhi = null;
+        DiZhiEnum shenGongDiZhi = null;
+
+        for (ZiweiPalaceDO pDO : palaceDOs) {
+            PalaceTypeEnum type = PalaceTypeEnum.ofCode(pDO.getPalaceType());
+            DiZhiEnum diZhi = DiZhiEnum.ofName(pDO.getDizhi());
+            TianGanEnum tianGan = pDO.getTianGan() != null ? TianGanEnum.ofName(pDO.getTianGan()) : null;
+            boolean isShenGong = pDO.getIsShenGong() != null && pDO.getIsShenGong();
+
+            Palace palace = Palace.builder()
+                    .type(type)
+                    .diZhi(diZhi)
+                    .tianGan(tianGan)
+                    .isShenGong(isShenGong)
+                    .daXianStartAge(pDO.getDaXianStartAge())
+                    .daXianEndAge(pDO.getDaXianEndAge())
+                    .stars(new ArrayList<>())
+                    .build();
+
+            // 填充星曜
+            List<ZiweiStarPositionDO> palaceStars = starsByPalaceId.getOrDefault(pDO.getId(), Collections.emptyList());
+            for (ZiweiStarPositionDO spDO : palaceStars) {
+                StarPosition sp = StarPosition.builder()
+                        .starCode(spDO.getStarCode())
+                        .starName(Star.getNameByCode(spDO.getStarCode()))
+                        .starType(StarTypeEnum.ofCode(spDO.getStarType()))
+                        .brightness(spDO.getBrightness() != null ? StarBrightnessEnum.ofCode(spDO.getBrightness()) : null)
+                        .sihuaType(spDO.getSihuaType() != null ? SihuaTypeEnum.ofCode(spDO.getSihuaType()) : null)
+                        .build();
+                palace.addStar(sp);
+            }
+
+            palaces.put(type, palace);
+
+            // 记录命宫/身宫地支
+            if (type == PalaceTypeEnum.MING_GONG) {
+                mingGongDiZhi = diZhi;
+            }
+            if (isShenGong) {
+                shenGongDiZhi = diZhi;
+            }
+        }
+
+        // --- 构建四化 ---
+        List<StarPosition> natalSihua = new ArrayList<>();
+        for (ZiweiSihuaDO sDO : sihuaDOs) {
+            if (sDO.getSihuaScope() != null && sDO.getSihuaScope() == 1) { // 本命四化
+                natalSihua.add(StarPosition.builder()
+                        .starCode(sDO.getHuaLuStarCode())
+                        .starName(Star.getNameByCode(sDO.getHuaLuStarCode()))
+                        .sihuaType(SihuaTypeEnum.HUA_LU)
+                        .build());
+                natalSihua.add(StarPosition.builder()
+                        .starCode(sDO.getHuaQuanStarCode())
+                        .starName(Star.getNameByCode(sDO.getHuaQuanStarCode()))
+                        .sihuaType(SihuaTypeEnum.HUA_QUAN)
+                        .build());
+                natalSihua.add(StarPosition.builder()
+                        .starCode(sDO.getHuaKeStarCode())
+                        .starName(Star.getNameByCode(sDO.getHuaKeStarCode()))
+                        .sihuaType(SihuaTypeEnum.HUA_KE)
+                        .build());
+                natalSihua.add(StarPosition.builder()
+                        .starCode(sDO.getHuaJiStarCode())
+                        .starName(Star.getNameByCode(sDO.getHuaJiStarCode()))
+                        .sihuaType(SihuaTypeEnum.HUA_JI)
+                        .build());
+                break; // 只取第一条本命四化
+            }
+        }
+
+        // --- 构建大限 ---
+        List<DaxianCycle> daxianCycles = new ArrayList<>();
+        for (ZiweiDaxianDO dDO : daxianDOs) {
+            PalaceTypeEnum palaceType = PalaceTypeEnum.ofCode(dDO.getPalaceType());
+            DaxianCycle dc = DaxianCycle.builder()
+                    .sequenceOrder(dDO.getSequenceOrder())
+                    .ageStart(dDO.getAgeStart())
+                    .ageEnd(dDO.getAgeEnd())
+                    .calYearStart(dDO.getCalYearStart())
+                    .calYearEnd(dDO.getCalYearEnd())
+                    .palaceType(palaceType)
+                    .forward(dDO.getDirection() != null && dDO.getDirection())
+                    .build();
+            daxianCycles.add(dc);
+        }
+
+        // --- 构建 ChartContext ---
+        // 从 chartDO 获取基础信息，从 DB 获取部分
+        ZiweiChartDO chartDO = chartMapper.selectById(chartId);
+        TianGanEnum yearGan = null;
+        DiZhiEnum yearZhi = null;
+        if (chartDO.getYearPillar() != null && chartDO.getYearPillar().length() >= 2) {
+            yearGan = TianGanEnum.ofName(String.valueOf(chartDO.getYearPillar().charAt(0)));
+            yearZhi = DiZhiEnum.ofName(String.valueOf(chartDO.getYearPillar().charAt(1)));
+        }
+
+        ChartContext ctx = ChartContext.builder()
+                .solarYear(chartDO.getSolarYear()).solarMonth(chartDO.getSolarMonth())
+                .solarDay(chartDO.getSolarDay()).solarHour(chartDO.getSolarHour())
+                .solarMinute(chartDO.getSolarMinute())
+                .gender(GenderEnum.ofCode(chartDO.getGender()))
+                .birthPlace(chartDO.getBirthPlace())
+                .isDst(chartDO.getIsDst() != null && chartDO.getIsDst())
+                .lunarYear(chartDO.getLunarYear()).lunarMonth(chartDO.getLunarMonth())
+                .lunarDay(chartDO.getLunarDay())
+                .isLeapMonth(chartDO.getIsLeapMonth() != null && chartDO.getIsLeapMonth())
+                .yearTianGan(yearGan).yearDiZhi(yearZhi)
+                .mingGongDiZhi(mingGongDiZhi).shenGongDiZhi(shenGongDiZhi)
+                .wuxingJu(chartDO.getWuxingJu())
+                .palaces(palaces).natalSihua(natalSihua).daxianCycles(daxianCycles)
+                .build();
+
+        // --- 格局匹配 ---
+        List<String> patterns = patternMatcher.matchPatterns(ctx);
+        ctx.setPatternNames(patterns);
+
+        return ctx;
     }
 
     @Override
@@ -321,6 +479,12 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
             }
             builder.palaces(palaceVOs);
             builder.patterns(ctx.getPatternNames());
+            // 格局详情
+            if (ctx.getPatternResults() != null && !ctx.getPatternResults().isEmpty()) {
+                builder.patternDetails(ctx.getPatternResults().stream()
+                        .map(this::toPatternDetailVO)
+                        .collect(Collectors.toList()));
+            }
             builder.natalSihua(toNatalSihuaVO(ctx.getNatalSihua()));
             builder.daxians(ctx.getDaxianCycles().stream().map(this::toDaxianVO).collect(Collectors.toList()));
         }
@@ -366,6 +530,18 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
                 .ageStart(dc.getAgeStart()).ageEnd(dc.getAgeEnd())
                 .palaceName(dc.getPalaceType().getName())
                 .direction(dc.isForward() ? "顺行" : "逆行")
+                .build();
+    }
+
+    private ZiweiChartRespVO.PatternDetailVO toPatternDetailVO(cn.iocoder.yudao.module.ziwei.engine.pattern.PatternResult pr) {
+        return ZiweiChartRespVO.PatternDetailVO.builder()
+                .name(pr.getName())
+                .level(pr.getLevel() != null ? pr.getLevel().getName() : null)
+                .description(pr.getDescription())
+                .source(pr.getSource())
+                .required(pr.getRequired())
+                .bonus(pr.getBonus())
+                .breaking(pr.getBreaking())
                 .build();
     }
 
