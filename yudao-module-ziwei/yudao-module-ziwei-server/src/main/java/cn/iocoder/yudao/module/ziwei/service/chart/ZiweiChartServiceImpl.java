@@ -54,6 +54,7 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
     private final DaxianEngine daxianEngine = new DaxianEngine();
     private final PatternMatcher patternMatcher = new PatternMatcher();
     private final BrightnessCalculator brightnessCalculator = new BrightnessCalculator();
+    private final ExtendedMinorStarPlacer extendedMinorPlacer = new ExtendedMinorStarPlacer();
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -113,8 +114,16 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
         Map<String, DiZhiEnum> auxStars = auxiliaryPlacer.placeAll(lunar.lunarMonth(), hourZhi, yearGan, yearZhi);
         Map<String, DiZhiEnum> minorStars = minorPlacer.placeAll(lunar.lunarMonth(), hourZhi, yearZhi, yearGan);
 
+        // Step 8b: 安扩展杂曜（依赖辅星位置的星曜：三台/八座/恩光/天贵 等）
+        Map<String, DiZhiEnum> extendedStars = extendedMinorPlacer.placeAll(
+                lunar.lunarMonth(), lunar.lunarDay(), yearZhi, yearGan,
+                gender, mingGongDiZhi, shenGongDiZhi,
+                auxStars.get("zuofu"), auxStars.get("youbi"),
+                auxStars.get("wenchang"), auxStars.get("wenqu"),
+                auxStars.get("lucun"));
+
         // Step 9: 填充星曜到宫位
-        placeStarsIntoPalaces(palaces, ziweiGroup, tianfuGroup, auxStars, minorStars);
+        placeStarsIntoPalaces(palaces, ziweiGroup, tianfuGroup, auxStars, minorStars, extendedStars);
 
         // Step 10: 四化
         List<StarPosition> natalSihua = sihuaCalculator.calculateNatalSihua(yearGan);
@@ -150,7 +159,8 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
                                         Map<String, DiZhiEnum> ziweiGroup,
                                         Map<String, DiZhiEnum> tianfuGroup,
                                         Map<String, DiZhiEnum> auxStars,
-                                        Map<String, DiZhiEnum> minorStars) {
+                                        Map<String, DiZhiEnum> minorStars,
+                                        Map<String, DiZhiEnum> extendedStars) {
         // 主星
         placeGroup(palaces, ziweiGroup, StarTypeEnum.MAJOR, false);
         placeGroup(palaces, tianfuGroup, StarTypeEnum.MAJOR, false);
@@ -158,6 +168,8 @@ public class ZiweiChartServiceImpl implements ZiweiChartService {
         placeGroup(palaces, auxStars, StarTypeEnum.AUXILIARY, true);
         // 杂曜
         placeGroup(palaces, minorStars, StarTypeEnum.MINOR, true);
+        // 扩展杂曜
+        placeGroup(palaces, extendedStars, StarTypeEnum.MINOR, true);
     }
 
     private void placeGroup(EnumMap<PalaceTypeEnum, Palace> palaces, Map<String, DiZhiEnum> starMap,

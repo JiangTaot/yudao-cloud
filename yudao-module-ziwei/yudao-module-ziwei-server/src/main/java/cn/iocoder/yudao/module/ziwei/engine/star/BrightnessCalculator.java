@@ -11,6 +11,7 @@ import java.util.Map;
  * 星曜亮度计算器
  * <p>
  * 亮度数据来源：文墨天机 QS（全书）体系，基于《紫微斗数全书》。
+ * 覆盖 48 颗星曜：14主星 + 8辅星 + 10杂曜 + 20扩展杂曜（不含神煞）。
  * <p>
  * 亮度等级（7级）：庙(MIAO) > 旺(WANG) > 得(DE) > 利(LI) > 平(PING) > 不(BU) > 陷(XIAN)
  * 编码：1=庙, 2=旺, 3=得, 4=利, 5=平, 6=不, 7=陷, 0=无(返回 null)
@@ -140,6 +141,68 @@ public class BrightnessCalculator {
 
         // 天喜
         TABLE.put(Star.CODE_TIANXI,   arr(2,7,1,2,7,1,1,7,2,1,7,2));
+
+        // ══════════════════ 扩展杂曜（文墨天机 QS）══════════════════
+
+        // 天福
+        TABLE.put(Star.CODE_TIANFUX,    arr(5,0,2,5,0,2,5,0,1,1,0,1));
+
+        // 天官
+        TABLE.put(Star.CODE_TIANGUAN,   arr(0,0,5,2,2,2,1,1,0,5,5,2));
+
+        // 八座
+        TABLE.put(Star.CODE_BAZUO,      arr(7,1,1,5,2,1,2,5,1,1,5,1));
+
+        // 三台
+        TABLE.put(Star.CODE_SANTAI,     arr(5,1,5,7,1,5,2,1,2,1,2,5));
+
+        // 天才
+        TABLE.put(Star.CODE_TIANCAI,    arr(2,5,1,2,7,1,2,5,1,2,7,1));
+
+        // 天空（杂曜）
+        TABLE.put(Star.CODE_TIANKONG_M, arr(7,5,7,5,1,1,1,7,2,2,7,5));
+
+        // 天哭
+        TABLE.put(Star.CODE_TIANKU,     arr(5,1,5,1,5,6,7,5,1,6,5,5));
+
+        // 天虚
+        TABLE.put(Star.CODE_TIANXU,     arr(7,1,2,1,7,2,5,7,1,2,7,5));
+
+        // 天贵
+        TABLE.put(Star.CODE_TIANGUI,    arr(1,2,5,2,2,5,1,2,7,1,2,5));
+
+        // 天寿
+        TABLE.put(Star.CODE_TIANSHOU,   arr(5,1,2,7,1,5,5,2,2,5,1,2));
+
+        // 天德（杂曜）
+        TABLE.put(Star.CODE_TIANDE_M,   arr(1,1,5,5,1,2,2,1,5,6,1,5));
+
+        // 孤辰
+        TABLE.put(Star.CODE_GUCHEN,     arr(0,0,5,0,0,7,0,0,5,0,0,7));
+
+        // 咸池
+        TABLE.put(Star.CODE_XIANCHI,    arr(7,0,0,5,0,0,7,0,0,5,0,0));
+
+        // 恩光
+        TABLE.put(Star.CODE_ENGUANG,    arr(5,1,5,1,1,5,1,2,5,7,1,6));
+
+        // 破碎
+        TABLE.put(Star.CODE_POSUI,      arr(0,7,0,0,0,7,0,0,0,5,0,0));
+
+        // 华盖
+        TABLE.put(Star.CODE_HUAGAI,     arr(0,7,0,0,1,0,0,7,0,0,5,0));
+
+        // 解神
+        TABLE.put(Star.CODE_JIESHEN,    arr(1,5,1,1,1,2,1,5,6,2,1,5));
+
+        // 寡宿
+        TABLE.put(Star.CODE_GUASU,      arr(0,5,0,0,7,0,0,6,0,0,7,0));
+
+        // 凤阁
+        TABLE.put(Star.CODE_FENGGE,     arr(1,5,1,2,7,1,5,7,6,1,1,2));
+
+        // 龙池
+        TABLE.put(Star.CODE_LONGCHI,    arr(2,5,5,1,1,7,6,1,5,1,7,2));
     }
 
     /** 便捷写法：创建 int 数组 */

@@ -158,4 +158,28 @@ public class BrightnessCalculatorTest {
     void testNullStarReturnsNull() { assertNull(calculator.calculate(null, DiZhiEnum.ZI)); }
     @Test
     void testNullBranchReturnsNull() { assertNull(calculator.calculate(Star.CODE_ZIWEI, null)); }
+
+    // ═══════════ 扩展杂曜 ═══════════
+    @Test
+    void testTianfuxAtYinWang() { assertEquals(StarBrightnessEnum.WANG, calculator.calculate(Star.CODE_TIANFUX, DiZhiEnum.YIN)); }
+    @Test
+    void testTianfuxAtSiWang() { assertEquals(StarBrightnessEnum.WANG, calculator.calculate(Star.CODE_TIANFUX, DiZhiEnum.SI)); }
+    @Test
+    void testTianfuxAtChouNull() { assertNull(calculator.calculate(Star.CODE_TIANFUX, DiZhiEnum.CHOU)); }
+    @Test
+    void testBazuoAtChouMiao() { assertEquals(StarBrightnessEnum.MIAO, calculator.calculate(Star.CODE_BAZUO, DiZhiEnum.CHOU)); }
+    @Test
+    void testTiancaiAtZiWang() { assertEquals(StarBrightnessEnum.WANG, calculator.calculate(Star.CODE_TIANCAI, DiZhiEnum.ZI)); }
+    @Test
+    void testGuchenAtYinPing() { assertEquals(StarBrightnessEnum.PING, calculator.calculate(Star.CODE_GUCHEN, DiZhiEnum.YIN)); }
+    @Test
+    void testGuchenAtSiXian() { assertEquals(StarBrightnessEnum.XIAN, calculator.calculate(Star.CODE_GUCHEN, DiZhiEnum.SI)); }
+    @Test
+    void testGuchenAtZiNull() { assertNull(calculator.calculate(Star.CODE_GUCHEN, DiZhiEnum.ZI)); }
+    @Test
+    void testHuagaiAtChenMiao() { assertEquals(StarBrightnessEnum.MIAO, calculator.calculate(Star.CODE_HUAGAI, DiZhiEnum.CHEN)); }
+    @Test
+    void testJieshenAtZiMiao() { assertEquals(StarBrightnessEnum.MIAO, calculator.calculate(Star.CODE_JIESHEN, DiZhiEnum.ZI)); }
+    @Test
+    void testGuasuAtZiNull() { assertNull(calculator.calculate(Star.CODE_GUASU, DiZhiEnum.ZI)); }
 }

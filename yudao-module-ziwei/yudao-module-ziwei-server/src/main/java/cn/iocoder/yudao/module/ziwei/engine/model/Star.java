@@ -79,6 +79,36 @@ public class Star {
 
     public static final String[] MINOR_STARS = {CODE_HUOXING, CODE_LINGXING, CODE_QINGYANG, CODE_TUOLUO, CODE_DIKONG, CODE_DIJIE, CODE_TIANXING, CODE_TIANYAO, CODE_HONGLUAN, CODE_TIANXI};
 
+    // ========== 扩展杂曜常量（文墨天机有亮度数据的）==========
+    public static final String CODE_TIANFUX = "tianfux";       // 天福（区别于天府 tianfu）
+    public static final String CODE_TIANGUAN = "tianguan";     // 天官
+    public static final String CODE_BAZUO = "bazuo";           // 八座
+    public static final String CODE_SANTAI = "santai";         // 三台
+    public static final String CODE_TIANCAI = "tiancai";       // 天才
+    public static final String CODE_TIANKONG_M = "tiankong_m"; // 天空（杂曜）
+    public static final String CODE_TIANKU = "tianku";         // 天哭
+    public static final String CODE_TIANXU = "tianxu";         // 天虚
+    public static final String CODE_TIANGUI = "tiangui";       // 天贵
+    public static final String CODE_TIANSHOU = "tianshou";     // 天寿
+    public static final String CODE_TIANDE_M = "tiande_m";     // 天德（杂曜）
+    public static final String CODE_GUCHEN = "guchen";         // 孤辰
+    public static final String CODE_XIANCHI = "xianchi";       // 咸池
+    public static final String CODE_ENGUANG = "enguang";       // 恩光
+    public static final String CODE_POSUI = "posui";           // 破碎
+    public static final String CODE_HUAGAI = "huagai";         // 华盖
+    public static final String CODE_JIESHEN = "jieshen";       // 解神
+    public static final String CODE_GUASU = "guasu";           // 寡宿
+    public static final String CODE_FENGGE = "fengge";         // 凤阁
+    public static final String CODE_LONGCHI = "longchi";       // 龙池
+
+    /** 所有扩展杂曜（不含神煞） */
+    public static final String[] EXTENDED_MINOR_STARS = {
+        CODE_TIANFUX, CODE_TIANGUAN, CODE_BAZUO, CODE_SANTAI, CODE_TIANCAI,
+        CODE_TIANKONG_M, CODE_TIANKU, CODE_TIANXU, CODE_TIANGUI, CODE_TIANSHOU,
+        CODE_TIANDE_M, CODE_GUCHEN, CODE_XIANCHI, CODE_ENGUANG, CODE_POSUI,
+        CODE_HUAGAI, CODE_JIESHEN, CODE_GUASU, CODE_FENGGE, CODE_LONGCHI
+    };
+
     /**
      * 获取星曜中文名（静态工具方法）
      */
@@ -116,6 +146,26 @@ public class Star {
             case CODE_TIANYAO -> "天姚";
             case CODE_HONGLUAN -> "红鸾";
             case CODE_TIANXI -> "天喜";
+            case CODE_TIANFUX -> "天福";
+            case CODE_TIANGUAN -> "天官";
+            case CODE_BAZUO -> "八座";
+            case CODE_SANTAI -> "三台";
+            case CODE_TIANCAI -> "天才";
+            case CODE_TIANKONG_M -> "天空";
+            case CODE_TIANKU -> "天哭";
+            case CODE_TIANXU -> "天虚";
+            case CODE_TIANGUI -> "天贵";
+            case CODE_TIANSHOU -> "天寿";
+            case CODE_TIANDE_M -> "天德";
+            case CODE_GUCHEN -> "孤辰";
+            case CODE_XIANCHI -> "咸池";
+            case CODE_ENGUANG -> "恩光";
+            case CODE_POSUI -> "破碎";
+            case CODE_HUAGAI -> "华盖";
+            case CODE_JIESHEN -> "解神";
+            case CODE_GUASU -> "寡宿";
+            case CODE_FENGGE -> "凤阁";
+            case CODE_LONGCHI -> "龙池";
             default -> code;
         };
     }
