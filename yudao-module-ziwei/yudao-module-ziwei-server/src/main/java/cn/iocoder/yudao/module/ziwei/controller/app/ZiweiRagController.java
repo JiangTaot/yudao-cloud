@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.ziwei.controller.app;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.module.ziwei.dal.dataobject.ZiweiRagDocumentDO;
 import cn.iocoder.yudao.module.ziwei.service.rag.ZiweiRagService;
 import cn.iocoder.yudao.module.ziwei.service.rag.ZiweiRagService.ZiweiRagResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
@@ -43,9 +45,19 @@ public class ZiweiRagController {
 
         byte[] fileBytes = file.getBytes();
         String fileName = file.getOriginalFilename();
-        Long documentId = ragService.uploadBook(fileBytes, fileName, bookTitle, bookAuthor);
+        ZiweiRagDocumentDO docDO = ragService.uploadBook(fileBytes, fileName, bookTitle, bookAuthor);
 
-        return success(new UploadRespVO(documentId, fileName, bookTitle));
+        return success(new UploadRespVO(
+                docDO.getId(),
+                docDO.getBookTitle(),
+                docDO.getBookAuthor(),
+                docDO.getFileName(),
+                docDO.getFileUrl(),
+                docDO.getFileSize(),
+                docDO.getSegmentCount(),
+                docDO.getStatus(),
+                docDO.getCreateTime()
+        ));
     }
 
     @GetMapping("/search")
@@ -71,9 +83,15 @@ public class ZiweiRagController {
      * 上传响应 VO
      */
     public record UploadRespVO(
-            Long documentId,
+            Long id,
+            String bookTitle,
+            String bookAuthor,
             String fileName,
-            String bookTitle
+            String fileUrl,
+            Long fileSize,
+            Integer segmentCount,
+            Integer status,
+            LocalDateTime createTime
     ) {}
 
 }

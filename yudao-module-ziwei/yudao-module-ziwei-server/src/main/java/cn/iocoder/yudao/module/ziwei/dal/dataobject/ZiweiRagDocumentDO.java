@@ -41,7 +41,10 @@ public class ZiweiRagDocumentDO extends BaseDO {
     /** 切分段数 */
     private Integer segmentCount;
 
-    /** 状态：0-禁用，1-启用 */
+    /** 状态：0-处理中 1-已完成 2-失败 */
     private Integer status;
+
+    /** 失败原因（status=2 时记录） */
+    private String errorMessage;
 
 }

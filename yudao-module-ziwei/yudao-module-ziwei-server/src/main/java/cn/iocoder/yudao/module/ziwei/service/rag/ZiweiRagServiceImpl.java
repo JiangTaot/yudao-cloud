@@ -2,20 +2,16 @@ package cn.iocoder.yudao.module.ziwei.service.rag;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.module.ziwei.dal.dataobject.ZiweiRagDocumentDO;
 import cn.iocoder.yudao.module.ziwei.dal.mysql.ZiweiRagDocumentMapper;
+import cn.iocoder.yudao.module.ziwei.enums.RagDocumentStatusEnum;
 import cn.iocoder.yudao.module.ziwei.framework.rag.config.ZiweiRagConfiguration;
-import cn.iocoder.yudao.module.ziwei.service.rag.splitter.ZiweiTextSplitter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.document.Document;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ai.reader.tika.TikaDocumentReader;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
-import org.springframework.core.io.ByteArrayResource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -24,7 +20,6 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,7 +27,8 @@ import java.util.stream.Collectors;
 /**
  * 紫微斗数 RAG 服务实现
  * <p>
- * 全流程：PDF 上传 → MinIO 存储 → Tika 解析 → 古文切分 → 向量化 → Milvus 存储 → 检索
+ * 全流程：PDF 上传 → MinIO 存储（同步） → 返回处理中状态
+ * → Tika 解析 → 古文切分 → 向量化 → Milvus 存储（异步）
  *
  * @author JTWORLD
  */
@@ -57,64 +53,38 @@ public class ZiweiRagServiceImpl implements ZiweiRagService {
     @Resource
     private ZiweiRagDocumentMapper documentMapper;
 
+    @Resource
+    private ZiweiRagProcessService processService;
+
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Long uploadBook(byte[] fileBytes, String fileName, String bookTitle, String bookAuthor) {
+    public ZiweiRagDocumentDO uploadBook(byte[] fileBytes, String fileName, String bookTitle, String bookAuthor) {
         log.info("[uploadBook] 开始上传书籍: bookTitle={}, fileName={}, fileSize={} bytes",
                 bookTitle, fileName, fileBytes.length);
 
-        // 1. 上传文件到 MinIO
+        // 1. 上传文件到 MinIO（同步）
         String objectKey = buildObjectKey(fileName);
         String fileUrl = uploadToMinio(fileBytes, fileName, objectKey);
         log.info("[uploadBook] 文件已上传到 MinIO: url={}", fileUrl);
 
-        // 2. Tika 解析 PDF 提取文本
-        String content = parsePdf(fileBytes);
-        if (StrUtil.isEmpty(content)) {
-            throw new RuntimeException("PDF 解析失败，未能提取到文本内容");
-        }
-        log.info("[uploadBook] PDF 解析完成，文本长度: {} 字符", content.length());
-
-        // 3. 古文定制切分
-        ZiweiTextSplitter splitter = new ZiweiTextSplitter();
-        List<String> segments = splitter.split(content);
-        log.info("[uploadBook] 文本切分完成，共 {} 段", segments.size());
-
-        // 4. 保存文档记录到 MySQL
+        // 2. 保存文档记录到 MySQL，状态 = 处理中
         ZiweiRagDocumentDO docDO = ZiweiRagDocumentDO.builder()
                 .bookTitle(bookTitle)
                 .bookAuthor(bookAuthor)
                 .fileName(fileName)
                 .fileUrl(fileUrl)
                 .fileSize((long) fileBytes.length)
-                .segmentCount(segments.size())
-                .status(CommonStatusEnum.ENABLE.getStatus())
+                .segmentCount(0)
+                .status(RagDocumentStatusEnum.PROCESSING.getStatus())
                 .build();
         documentMapper.insert(docDO);
         Long documentId = docDO.getId();
-        log.info("[uploadBook] 文档记录已保存: documentId={}", documentId);
+        log.info("[uploadBook] 文档记录已保存: documentId={}, status=PROCESSING", documentId);
 
-        // 5. 向量化并存入 Milvus（VectorStore 未就绪时跳过）
-        if (vectorStore == null) {
-            log.warn("[uploadBook] VectorStore 未配置，跳过向量化");
-            return documentId;
-        }
-        List<Document> docs = new ArrayList<>();
-        for (int i = 0; i < segments.size(); i++) {
-            String segmentText = segments.get(i);
-            if (StrUtil.isBlank(segmentText)) {
-                continue;
-            }
-            Document doc = new Document(segmentText);
-            doc.getMetadata().put(META_DOCUMENT_ID, documentId.toString());
-            doc.getMetadata().put(META_BOOK_TITLE, bookTitle);
-            doc.getMetadata().put(META_CHAPTER, detectChapter(segmentText));
-            docs.add(doc);
-        }
-        vectorStore.add(docs);
-        log.info("[uploadBook] 向量化完成，已存入 Milvus，共 {} 条向量", docs.size());
+        // 3. 提交异步处理任务（PDF 解析 → 文本切分 → 向量化 → 更新状态）
+        processService.processAsync(documentId, fileBytes, bookTitle);
+        log.info("[uploadBook] 已提交异步处理任务: documentId={}", documentId);
 
-        return documentId;
+        return docDO;
     }
 
     @Override
@@ -130,13 +100,13 @@ public class ZiweiRagServiceImpl implements ZiweiRagService {
             return List.of();
         }
 
-        SearchRequest request= SearchRequest.builder()
+        SearchRequest request = SearchRequest.builder()
                 .query(query)
                 .topK(topK)
                 .similarityThreshold(SearchRequest.SIMILARITY_THRESHOLD_ACCEPT_ALL)
                 .build();
 
-        List<Document> documents = vectorStore.similaritySearch(request);
+        List<org.springframework.ai.document.Document> documents = vectorStore.similaritySearch(request);
         if (CollUtil.isEmpty(documents)) {
             log.info("[searchKnowledge] 未检索到相关结果");
             return List.of();
@@ -183,7 +153,7 @@ public class ZiweiRagServiceImpl implements ZiweiRagService {
         if (vectorStore != null) {
             try {
                 vectorStore.delete(new FilterExpressionBuilder()
-                    .eq(META_DOCUMENT_ID, documentId.toString()).build());
+                        .eq(META_DOCUMENT_ID, documentId.toString()).build());
                 log.info("[deleteDocument] Milvus 向量已删除");
             } catch (Exception e) {
                 log.warn("[deleteDocument] Milvus 向量删除失败: {}", e.getMessage());
@@ -239,24 +209,6 @@ public class ZiweiRagServiceImpl implements ZiweiRagService {
     }
 
     /**
-     * Tika 解析 PDF 提取纯文本
-     */
-    private String parsePdf(byte[] fileBytes) {
-        try {
-            ByteArrayResource resource = new ByteArrayResource(fileBytes);
-            TikaDocumentReader reader = new TikaDocumentReader(resource);
-            List<Document> documents = reader.get();
-            if (CollUtil.isEmpty(documents)) {
-                return "";
-            }
-            return documents.get(0).getText();
-        } catch (Exception e) {
-            log.error("[parsePdf] PDF 解析失败", e);
-            throw new RuntimeException("PDF 解析失败: " + e.getMessage(), e);
-        }
-    }
-
-    /**
      * 检测文件 MIME 类型
      */
     private String detectContentType(String fileName) {
@@ -270,28 +222,6 @@ public class ZiweiRagServiceImpl implements ZiweiRagService {
         if (lower.endsWith(".doc")) return "application/msword";
         if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         return "application/octet-stream";
-    }
-
-    /**
-     * 检测文本段所属章节
-     */
-    private String detectChapter(String text) {
-        if (StrUtil.isBlank(text)) {
-            return "";
-        }
-        // 尝试匹配卷标题
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile(
-                "(卷[之第]?[一二三四五六七八九十百千0-9]+)").matcher(text);
-        if (m.find()) {
-            return m.group(1);
-        }
-        // 尝试匹配篇/章标题
-        m = java.util.regex.Pattern.compile(
-                "(第[一二三四五六七八九十百千0-9]+[篇章节])").matcher(text);
-        if (m.find()) {
-            return m.group(1);
-        }
-        return "";
     }
 
 }

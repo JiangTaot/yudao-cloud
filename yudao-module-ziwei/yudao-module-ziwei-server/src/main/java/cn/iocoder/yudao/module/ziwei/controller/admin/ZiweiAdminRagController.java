@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
@@ -49,9 +50,19 @@ public class ZiweiAdminRagController {
 
         byte[] fileBytes = file.getBytes();
         String fileName = file.getOriginalFilename();
-        Long documentId = ragService.uploadBook(fileBytes, fileName, bookTitle, bookAuthor);
+        ZiweiRagDocumentDO docDO = ragService.uploadBook(fileBytes, fileName, bookTitle, bookAuthor);
 
-        return success(new UploadRespVO(documentId, fileName, bookTitle));
+        return success(new UploadRespVO(
+                docDO.getId(),
+                docDO.getBookTitle(),
+                docDO.getBookAuthor(),
+                docDO.getFileName(),
+                docDO.getFileUrl(),
+                docDO.getFileSize(),
+                docDO.getSegmentCount(),
+                docDO.getStatus(),
+                docDO.getCreateTime()
+        ));
     }
 
     @GetMapping("/page")
@@ -92,9 +103,15 @@ public class ZiweiAdminRagController {
      * 上传响应 VO
      */
     public record UploadRespVO(
-            Long documentId,
+            Long id,
+            String bookTitle,
+            String bookAuthor,
             String fileName,
-            String bookTitle
+            String fileUrl,
+            Long fileSize,
+            Integer segmentCount,
+            Integer status,
+            LocalDateTime createTime
     ) {}
 
 }
