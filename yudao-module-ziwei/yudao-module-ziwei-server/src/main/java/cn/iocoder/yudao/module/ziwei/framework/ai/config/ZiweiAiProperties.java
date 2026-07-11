@@ -16,7 +16,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class ZiweiAiProperties {
 
     private Deepseek deepseek = new Deepseek();
-    private Embedding embedding = new Embedding();
 
     @Data
     public static class Deepseek {
@@ -30,14 +29,6 @@ public class ZiweiAiProperties {
         private Double temperature = 0.7;
         /** 最大 Token */
         private Integer maxTokens = 4096;
-    }
-
-    @Data
-    public static class Embedding {
-        /** 阿里云 DashScope API Key */
-        private String apiKey;
-        /** Embedding 模型名 */
-        private String model = "text-embedding-v4";
     }
 
 }

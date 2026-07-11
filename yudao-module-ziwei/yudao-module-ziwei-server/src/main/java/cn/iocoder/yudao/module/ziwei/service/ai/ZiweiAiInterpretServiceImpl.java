@@ -2,8 +2,6 @@ package cn.iocoder.yudao.module.ziwei.service.ai;
 
 import cn.iocoder.yudao.module.ziwei.controller.admin.vo.ZiweiChartRespVO;
 import cn.iocoder.yudao.module.ziwei.service.chart.ZiweiChartService;
-import cn.iocoder.yudao.module.ziwei.service.rag.ZiweiRagService;
-import cn.iocoder.yudao.module.ziwei.service.rag.ZiweiRagService.ZiweiRagResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -14,7 +12,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import jakarta.annotation.Resource;
-import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -34,9 +31,6 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
     @Resource
     private ChatModel chatModel;
 
-    @Resource
-    private ZiweiRagService ragService;
-
     @Override
     public String interpretChart(Long chartId, String userQuestion) {
         ZiweiChartRespVO chart = chartService.getChart(chartId);
@@ -46,17 +40,10 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
         String question = (userQuestion != null && !userQuestion.isBlank())
                 ? userQuestion : "请对这个命盘进行全面解读分析。";
 
-        // === RAG 检索：从古籍中查找相关内容 ===
-        String ragContext = buildRagContext(question);
-
         String systemPrompt = buildSystemPrompt();
 
         StringBuilder userMessage = new StringBuilder();
         userMessage.append("以下是命盘数据：\n\n").append(chartData);
-        if (!ragContext.isEmpty()) {
-            userMessage.append("\n\n【古籍参考原文】\n\n").append(ragContext);
-            userMessage.append("\n请结合以上古籍原文进行专业解读。");
-        }
         userMessage.append("\n\n用户问题：").append(question);
 
         Prompt prompt = new Prompt(java.util.List.of(
@@ -81,17 +68,10 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
         String question = (userQuestion != null && !userQuestion.isBlank())
                 ? userQuestion : "请对这个命盘进行全面解读分析。";
 
-        // === RAG 检索：从古籍中查找相关内容 ===
-        String ragContext = buildRagContext(question);
-
         String systemPrompt = buildSystemPrompt();
 
         StringBuilder userMessage = new StringBuilder();
         userMessage.append("以下是命盘数据：\n\n").append(chartData);
-        if (!ragContext.isEmpty()) {
-            userMessage.append("\n\n【古籍参考原文】\n\n").append(ragContext);
-            userMessage.append("\n请结合以上古籍原文进行专业解读。");
-        }
         userMessage.append("\n\n用户问题：").append(question);
 
         Prompt prompt = new Prompt(java.util.List.of(
@@ -132,18 +112,10 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
         String question = (userQuestion != null && !userQuestion.isBlank())
                 ? userQuestion : "请解读此宫位。";
 
-        // === RAG 检索：从古籍中查找与该宫位相关的内容 ===
-        String ragQuery = targetPalace.getPalaceName() + " " + question;
-        String ragContext = buildRagContext(ragQuery);
-
         String systemPrompt = buildPalaceSystemPrompt();
 
         StringBuilder userMessage = new StringBuilder();
         userMessage.append("以下是命盘与宫位数据：\n\n").append(palaceData);
-        if (!ragContext.isEmpty()) {
-            userMessage.append("\n\n【古籍参考原文】\n\n").append(ragContext);
-            userMessage.append("\n请结合以上古籍原文进行专业解读。");
-        }
         userMessage.append("\n\n用户问题：").append(question);
 
         Prompt prompt = new Prompt(java.util.List.of(
@@ -160,34 +132,6 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
     }
 
     // ========== Prompt 构建 ==========
-
-    /**
-     * RAG 检索古籍相关内容
-     */
-    private String buildRagContext(String question) {
-        try {
-            List<ZiweiRagResult> results = ragService.searchKnowledge(question, 3);
-            if (results == null || results.isEmpty()) {
-                return "";
-            }
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < results.size(); i++) {
-                ZiweiRagResult r = results.get(i);
-                sb.append("【参考").append(i + 1).append("】");
-                if (r.bookTitle() != null && !r.bookTitle().isEmpty()) {
-                    sb.append("出自《").append(r.bookTitle()).append("》");
-                }
-                if (r.chapter() != null && !r.chapter().isEmpty()) {
-                    sb.append(" ").append(r.chapter());
-                }
-                sb.append("：\n").append(r.content()).append("\n\n");
-            }
-            return sb.toString().trim();
-        } catch (Exception e) {
-            log.warn("RAG 检索失败，降级为仅基于模型知识解读: {}", e.getMessage());
-            return "";
-        }
-    }
 
     /**
      * 构建命盘文本数据
@@ -342,9 +286,6 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
                 你是一位专业的紫微斗数命理师，精通紫微斗数经典理论（参考《紫微斗数全书》《骨髓赋》等古籍）。
                 请根据用户提供的命盘数据进行专业、客观、有条理的解读。
 
-                如果用户消息中包含【古籍参考原文】，请优先引用其中的古籍原文作为解读依据，
-                并结合命盘实际数据进行分析比对。引用古籍时请注明出处。
-
                 解读要求：
                 1. 首先概述命盘的整体特点（命宫主星、五行局、格局等）
                 2. 分析命宫及其三方四正的星曜配置，解读性格特质和人生主题
@@ -357,7 +298,6 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
                 注意事项：
                 - 请使用通俗易懂的中文，避免过于晦涩的术语
                 - 请保持客观中立，避免绝对化的断言
-                - 请适当引用古籍经典作为佐证
                 - 结尾请加上免责声明：以上解读仅供参考，命运掌握在自己手中
                 """;
     }
@@ -368,9 +308,6 @@ public class ZiweiAiInterpretServiceImpl implements ZiweiAiInterpretService {
     private String buildPalaceSystemPrompt() {
         return """
                 你是一位专业的紫微斗数命理师。请根据用户提供的命盘和宫位数据，对该宫位进行专业解读。
-
-                如果用户消息中包含【古籍参考原文】，请优先引用其中的古籍原文作为解读依据，
-                并结合宫位实际星曜配置进行分析比对。引用古籍时请注明出处。
 
                 解读要求：
                 1. 分析该宫位的主星配置及其含义
