@@ -105,6 +105,8 @@ yudao:
     ignore-urls:
       - /admin-api/ziwei/ai/**
       - /app-api/ziwei/ai/**
+      - /admin-api/ziwei/cycle/**
+      - /app-api/ziwei/cycle/**
     ignore-tables:
       - ziwei_chart
       - ziwei_palace
